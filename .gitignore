@@ -1,0 +1,23 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest & environments
+.pytest_cache/
+.env
+venv/
+env/
+.venv/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Log files
+*.log
+
+# Stale root model duplicates (active models are inside models/)
+yolov8s.pt
+yolo11n.pt

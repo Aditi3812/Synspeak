@@ -1,0 +1,9 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.pytest_cache
+tests
+yolov8s.pt
+yolo11n.pt
+*.md

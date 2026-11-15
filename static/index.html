@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synspeak | AI Study Concentration & Accountability System</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=2.1">
+    <!-- Local self-contained Chart.js for offline reliability -->
+    <script src="/static/js/chart.min.js"></script>
+</head>
+<body>
+
+    <!-- Top Header -->
+    <header class="top-header">
+        <div class="brand">
+            <div class="brand-icon">⚡</div>
+            <div class="brand-title">
+                <h1>Synspeak Concentration Monitor</h1>
+                <div class="brand-subtitle">Real-Time Observable Study Behaviour & Accountability System</div>
+            </div>
+            <div id="connBadge" class="badge disconnected">Connecting...</div>
+        </div>
+
+        <div class="header-controls">
+                        <button id="btnStart" class="btn btn-primary">
+                <span>▶</span> Start Session
+            </button>
+            <button id="btnPause" class="btn btn-secondary" disabled>
+                <span>⏸</span> Pause
+            </button>
+            <button id="btnStop" class="btn btn-danger" disabled>
+                <span>⏹</span> Finish & Report
+            </button>
+            <button id="btnReset" class="btn btn-secondary" title="Reset Session Data">
+                <span>🔄</span>
+            </button>
+            <button id="btnCalibrate" class="btn btn-secondary" title="Calibrate Neutral Face Angle">
+                <span>🎯</span> Calibrate
+            </button>
+            <button id="btnSettings" class="btn btn-secondary" title="Configure Thresholds & Penalties">
+                <span>⚙️</span> Settings
+            </button>
+            <button id="btnThemeToggle" class="btn btn-secondary" title="Toggle Light / Dark Mode">
+                <span id="themeToggleIcon">☀️</span> <span id="themeToggleText">Light</span>
+            </button>
+            <button id="btnEthicsInfo" class="btn btn-secondary" title="Engineering Principles & Ethics">
+                <span>ℹ️</span> Principles
+            </button>
+        </div>
+    </header>
+
+    <!-- Ethical Disclaimer & Behavioural Estimation Notice -->
+    <div class="disclaimer-banner">
+        <span>
+            <strong>Behavioural Estimation Notice:</strong> Visual markers (gaze, eye openness, phone visibility) estimate <em>observable study behaviours</em> that may correlate with attention, not direct measurements of internal mental focus.
+        </span>
+        <button id="btnReadPrinciples" class="disclaimer-info-btn" onclick="document.getElementById('ethicsModal').style.display='flex'">
+            Learn how this works
+        </button>
+    </div>
+
+    <!-- Top Distraction / Escalation Warning Banner -->
+    <div id="topWarningBanner" class="warning-banner-top info" style="display: none;">
+        <span id="topWarningText">Notification</span>
+        <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.72rem;" onclick="document.getElementById('topWarningBanner').style.display='none'">Dismiss</button>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-container">
+
+        <!-- ONE-FLAG CHALLENGE Dedicated Punishment Interface -->
+        <section id="punishmentHeroPanel" class="punishment-hero-panel" style="display: none;">
+            <div class="punish-header">
+                <div class="punish-title-group">
+                    <h2><span>🚨</span> ONE-FLAG CHALLENGE</h2>
+                    <div class="punish-subtitle">Complete your additional study period without another distraction.</div>
+                </div>
+                <div class="badge" style="background: rgba(239, 68, 68, 0.3); color: #fca5a5; border: 1px solid #ef4444;">
+                    PUNISHMENT ACTIVE
+                </div>
+            </div>
+
+            <div class="punish-grid">
+                <div class="punish-timer-card">
+                    <div class="punish-stat-label">Punishment Countdown</div>
+                    <div id="punishCountdown" class="punish-countdown-large">05:00</div>
+                    <div class="punish-progress-wrap">
+                        <div id="punishProgressBar" class="punish-progress-bar"></div>
+                    </div>
+                </div>
+
+                <div class="punish-stat-box">
+                    <div class="punish-stat-label">Original Pomodoro</div>
+                    <div id="punishFrozenPomodoro" class="punish-stat-val frozen">--:--</div>
+                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">Frozen during challenge</div>
+                </div>
+
+                <div class="punish-stat-box">
+                    <div class="punish-stat-label">Allowed Distractions</div>
+                    <div id="punishAllowedFlags" class="punish-stat-val warning">0 / 1 max</div>
+                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">2nd flag resets timer!</div>
+                </div>
+
+                <div class="punish-stat-box">
+                    <div class="punish-stat-label">Punishment Resets</div>
+                    <div id="punishResetCount" class="punish-stat-val danger">0 resets</div>
+                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">Timer restarts if violated</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hidden legacy anchors for backwards compatibility -->
+        <div id="majorAlertBanner" style="display: none;"></div>
+        <div id="flagStrip" style="display: none;"></div>
+
+        <!-- Full-Width Horizontal Pomodoro Timer Bar (Above All Cards) -->
+        <section id="pomodoroTopBar" class="pomodoro-timer-bar-card">
+            <div class="pom-bar-header">
+                <div class="pom-bar-left">
+                    <span class="pom-bar-icon">⏱️</span>
+                    <span class="pom-bar-title">POMODORO FOCUS SESSION</span>
+                    <span id="lblPomodoroBarStatus" class="pom-status-tag status-idle">IDLE</span>
+                    <span id="lblPomodoroBarFrozenNotice" class="pom-frozen-tag" style="display: none;">FROZEN BY CHALLENGE</span>
+                    <button id="btnOpenPomConfig" class="btn btn-secondary" title="Set Timer, Laps &amp; Breaks" style="padding: 4px 10px; font-size: 0.75rem; margin-left: 10px; display: inline-flex; align-items: center; gap: 6px;">
+                        <span>⏱</span>
+                        <span id="lblPomConfigSummary">25m &times; 4 Laps (5m Break)</span>
+                        <strong style="font-size: 0.65rem; color: var(--accent-emerald);">SET</strong>
+                    </button>
+                </div>
+                <div class="pom-bar-center">
+                    <div id="lblPomodoroBarTime" class="pom-bar-time-display">25:00</div>
+                </div>
+                <div class="pom-bar-right">
+                    <span class="pom-metric-item">Lap: <strong id="lblPomodoroBarLap">Lap 1 of 4</strong></span>
+                    <span class="pom-metric-divider">|</span>
+                    <span class="pom-metric-item">Phase: <strong id="lblPomodoroBarPhase" style="color: var(--accent-emerald);">FOCUS</strong></span>
+                    <span class="pom-metric-divider">|</span>
+                    <span class="pom-metric-item">Elapsed: <strong id="lblPomodoroBarElapsed">00:00</strong></span>
+                    <span class="pom-metric-divider">|</span>
+                    <span class="pom-metric-item">Remaining: <strong id="lblPomodoroBarRemaining">25:00</strong></span>
+                </div>
+            </div>
+            <!-- Full Width Sleek Progress Track -->
+            <div class="pom-progress-track">
+                <div id="pomodoroBarFill" class="pom-progress-fill" style="width: 0%;"></div>
+            </div>
+        </section>
+
+        <!-- Left Column: Video & Biometrics -->
+        <section class="camera-card">
+            <div class="video-wrapper">
+                <video id="webcamVideo" playsinline autoplay muted></video>
+                <canvas id="overlayCanvas"></canvas>
+                
+                <!-- Floating State Badge -->
+                <div id="stateBadge" class="state-badge state-unknown">
+                    <span class="dot"></span> Initializing...
+                </div>
+
+                <!-- Camera Access Alert Overlay -->
+                <div id="cameraOverlayAlert" class="camera-overlay-alert">
+                    <h3>📷 Camera Access Required</h3>
+                    <p>Grant camera permissions in your browser, or start the interactive test feed to evaluate the AI models.</p>
+                    <button id="btnStartSimulation" class="btn btn-primary" style="margin-top: 10px;">
+                        <span>🎬</span> Run Interactive Test Feed
+                    </button>
+                </div>
+            </div>
+
+            <!-- Visual Overlay Controls Toolbar -->
+            <div class="overlay-toggles-bar">
+                <label class="toggle-label">
+                    <input type="checkbox" id="chkHeadPose" checked> 3D Head Pose
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="chkEyes" checked> Eyes & EAR
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="chkMesh" checked> Facial Contour
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="chkPhone" checked> Phone Box
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="chkMirror" checked> Mirror
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="chkAudio" checked> Audio Chimes
+                </label>
+                <button id="btnToggleSimFeed" class="btn btn-secondary" style="margin-left: auto; padding: 3px 8px; font-size: 0.72rem;">
+                    <span>🎬</span> Test Feed
+                </button>
+            </div>
+
+            <!-- Biometric Telemetry -->
+            <div class="telemetry-card">
+                <div class="telemetry-title">Live Observable Telemetry</div>
+                <div class="telemetry-grid">
+                    <div class="tele-metric">
+                        <div class="tele-label">Left EAR</div>
+                        <div id="lblEarLeft" class="tele-val">0.000</div>
+                    </div>
+                    <div class="tele-metric">
+                        <div class="tele-label">Right EAR</div>
+                        <div id="lblEarRight" class="tele-val">0.000</div>
+                    </div>
+                    <div class="tele-metric">
+                        <div class="tele-label">Average EAR</div>
+                        <div id="lblEarAvg" class="tele-val">0.000</div>
+                    </div>
+                    <div class="tele-metric">
+                        <div class="tele-label">Head Yaw</div>
+                        <div id="lblPoseYaw" class="tele-val">0.0°</div>
+                    </div>
+                    <div class="tele-metric">
+                        <div class="tele-label">Head Pitch</div>
+                        <div id="lblPosePitch" class="tele-val">0.0°</div>
+                    </div>
+                    <div class="tele-metric">
+                        <div class="tele-label">Inference Latency</div>
+                        <div id="lblInferenceFps" class="tele-val">0 ms</div>
+                    </div>
+                </div>
+
+                <!-- EAR Openness Meter -->
+                <div class="ear-meter-container">
+                    <div class="tele-label" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>Eye Openness Meter</span>
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">Threshold: 0.21</span>
+                    </div>
+                    <div class="ear-meter-bg">
+                        <div id="earBarFill" class="ear-meter-fill"></div>
+                        <div class="ear-meter-target" title="Closure Threshold"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Analytics, KPIs & Charts -->
+        <section class="analytics-column">
+            
+            <!-- Top KPI Row -->
+            <div class="kpi-row">
+                <!-- Concentration Gauge -->
+                <div class="kpi-card conc-gauge-card">
+                    <div class="sub-kpi-label">ESTIMATED CONCENTRATION</div>
+                    <div class="gauge-svg-wrapper">
+                        <svg class="gauge-svg" width="120" height="120" viewBox="0 0 100 100">
+                            <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                            <circle id="concCircle" class="gauge-fill" cx="50" cy="50" r="45"></circle>
+                        </svg>
+                        <div id="concPercentage" class="gauge-text">100%</div>
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">Proxy Behavioural Index</div>
+                </div>
+
+                <!-- Primary Durations Grid -->
+                <div class="kpi-card">
+                    <div class="kpi-grid-sub">
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Focused Time</div>
+                            <div id="lblFocusedTime" class="sub-kpi-val focused">00:00</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Distracted Time</div>
+                            <div id="lblDistractedTime" class="sub-kpi-val distracted">00:00</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Desk Absence</div>
+                            <div id="lblAbsentTime" class="sub-kpi-val absent">00:00</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Total Monitored</div>
+                            <div id="lblTotalTime" class="sub-kpi-val">00:00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Stats & Distraction Counter -->
+                <div class="kpi-card">
+                    <div class="sub-kpi-label">SESSION MONITOR</div>
+                    <div style="margin-top: 8px;">
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px;">Distraction Episodes</div>
+                        <div id="lblEventCount" style="font-size: 1.5rem; font-weight: 700; color: var(--accent-rose);">0 events</div>
+                    </div>
+                    <div style="margin-top: 14px;">
+                        <div class="sub-kpi-label">Goal Target: <span id="lblGoalDuration">25m</span></div>
+                        <div class="goal-progress-bg" style="margin-top: 4px;">
+                            <div id="goalProgressBar" class="goal-progress-fill"></div>
+                        </div>
+                        <div id="lblGoalRemaining" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; text-align: right;">
+                            25m remaining
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dedicated Discipline, Flag Escalation & Pomodoro Status Panel -->
+            <div class="discipline-grid">
+                <!-- 1. Discipline Score -->
+                <div class="discipline-card">
+                    <div>
+                        <div class="disc-title">Discipline Score</div>
+                        <div id="lblDisciplineScore" class="disc-hero-val score-high">100 / 100</div>
+                    </div>
+                    <div style="font-size: 0.73rem; color: var(--text-secondary); display: flex; justify-content: space-between;">
+                        <span>Deductions: <strong id="lblTotalDeductions" style="color: var(--accent-rose);">-0</strong></span>
+                        <span>Rewards: <strong id="lblTotalRewards" style="color: var(--accent-emerald);">+0</strong></span>
+                    </div>
+                </div>
+
+                <!-- 2. Distraction Flags (Rolling 15-min) -->
+                <div class="discipline-card">
+                    <div>
+                        <div class="disc-title">Distraction Flags (15m window)</div>
+                        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+                            <div id="lblFlagsCount" class="disc-hero-val">0 flags</div>
+                            <span id="lblFlagsRemaining" style="font-size: 0.75rem; color: var(--text-muted);">5 left</span>
+                        </div>
+                    </div>
+                    <!-- 5-Flag Dots -->
+                    <div class="flag-dots-strip" id="flagDotsStrip">
+                        <div class="flag-dot" id="dotFlag1">1</div>
+                        <div class="flag-dot" id="dotFlag2">2</div>
+                        <div class="flag-dot" id="dotFlag3">3</div>
+                        <div class="flag-dot warning-dot" id="dotFlag4">4</div>
+                        <div class="flag-dot" id="dotFlag5" style="border-color: #ef4444;">🚨</div>
+                    </div>
+                </div>
+
+                <!-- 3. Focus Streak -->
+                <div class="discipline-card">
+                    <div>
+                        <div class="disc-title">Focus Streak</div>
+                        <div id="lblFocusStreak" class="disc-hero-val" style="color: var(--accent-emerald);">00:00</div>
+                    </div>
+                    <div style="font-size: 0.73rem; color: var(--text-secondary); display: flex; justify-content: space-between;">
+                        <span>Best Streak: <strong id="lblLongestStreak">00:00</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-Time Charts Row -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Rolling Telemetry Timeline (Last 60s)</div>
+                    <div class="chart-wrapper">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Behavioural Breakdown</div>
+                    <div class="chart-wrapper">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Distraction Events Log -->
+            <div class="events-card">
+                <div class="events-header">
+                    <div class="events-title">Observed Distraction Log</div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">Real-time behavioural transitions</div>
+                </div>
+                <div class="events-table-wrapper">
+                    <table class="events-table">
+                        <thead>
+                            <tr>
+                                <th>Event ID</th>
+                                <th>Reason / Pattern</th>
+                                <th>Start Time</th>
+                                <th>Duration</th>
+                                <th>Observable Metric</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTableBody">
+                            <tr>
+                                <td colspan="5" class="empty-state">No distraction patterns observed yet. Excellent focus!</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Comprehensive Session Report Modal -->
+    <div id="reportModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <div>
+                    <h3>Study Session Behavioural & Discipline Report</h3>
+                    <div id="repSessionId" style="font-size: 0.75rem; color: var(--text-muted);">SESSION-0000</div>
+                </div>
+                <button id="btnCloseReport" class="modal-close">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Hero Score -->
+                <div class="report-summary-hero">
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">OBSERVABLE CONCENTRATION RATING</div>
+                        <div id="repConcentrationScore" class="report-hero-score">92.4%</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">
+                            Active Session: <span id="repStart">-</span> to <span id="repEnd">-</span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Total Monitored Time</div>
+                        <div id="repTotalDuration" style="font-size: 1.6rem; font-weight: 700;">25m 00s</div>
+                    </div>
+                </div>
+
+                <!-- Durations Grid -->
+                <div class="report-durations-grid">
+                    <div class="sub-kpi">
+                        <div class="sub-kpi-label">Focused Time</div>
+                        <div id="repFocusedTime" class="sub-kpi-val focused">-</div>
+                    </div>
+                    <div class="sub-kpi">
+                        <div class="sub-kpi-label">Distracted Time</div>
+                        <div id="repDistractedTime" class="sub-kpi-val distracted">-</div>
+                    </div>
+                    <div class="sub-kpi">
+                        <div class="sub-kpi-label">Absent Time</div>
+                        <div id="repAbsentTime" class="sub-kpi-val absent">-</div>
+                    </div>
+                    <div class="sub-kpi">
+                        <div class="sub-kpi-label">Unclassified</div>
+                        <div id="repUnknownTime" class="sub-kpi-val">-</div>
+                    </div>
+                </div>
+
+                <!-- Discipline & Punishment Section -->
+                <div>
+                    <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-secondary);">Discipline & Accountability Summary</h4>
+                    <div class="report-distraction-breakdown-grid">
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Discipline Score</div>
+                            <div id="repDisciplineScore" style="font-size: 1.1rem; font-weight: 700; color: var(--accent-emerald);">100 / 100</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Total Deductions</div>
+                            <div id="repTotalDeductions" style="font-size: 1.1rem; font-weight: 700; color: var(--accent-rose);">-0 pts</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Total Flags</div>
+                            <div id="repTotalFlags" style="font-size: 1.1rem; font-weight: 700; color: var(--accent-amber);">0 flags</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Punishments Triggered</div>
+                            <div id="repTotalPunishments" style="font-size: 1.1rem; font-weight: 700; color: #f87171;">0</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Punishment Time Served</div>
+                            <div id="repPunishmentTime" style="font-size: 1.1rem; font-weight: 700; color: #f87171;">00m 00s</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">Longest Focus Streak</div>
+                            <div id="repLongestStreak" style="font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">00m 00s</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Distraction Breakdown -->
+                <div>
+                    <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-secondary);">Distraction Pattern Breakdown</h4>
+                    <div class="report-distraction-breakdown-grid">
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">📱 Mobile Phone</div>
+                            <div id="repPhoneStats" style="font-size: 0.95rem; font-weight: 600; color: var(--accent-rose);">-</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">👀 Head Turned</div>
+                            <div id="repGazeStats" style="font-size: 0.95rem; font-weight: 600; color: var(--accent-amber);">-</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">😴 Prolonged Closure</div>
+                            <div id="repDrowsyStats" style="font-size: 0.95rem; font-weight: 600; color: var(--accent-purple);">-</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">🥱 Yawning</div>
+                            <div id="repYawnStats" style="font-size: 0.95rem; font-weight: 600; color: var(--accent-cyan);">-</div>
+                        </div>
+                        <div class="sub-kpi">
+                            <div class="sub-kpi-label">🚶 Desk Absence</div>
+                            <div id="repAbsenceStats" style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Timeline Trendline -->
+                <div>
+                    <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-secondary);">Session Timeline Trend</h4>
+                    <div style="height: 180px; width: 100%;">
+                        <canvas id="reportTimelineCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Behavioral Pattern Insights -->
+                <div>
+                    <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-secondary);">Personalized Behavioural Insights & Recommendations</h4>
+                    <div id="repInsightsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+                    </div>
+                </div>
+
+                <!-- Chronological Event History -->
+                <div>
+                    <h4 style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-secondary);">Chronological Event & Accountability Log</h4>
+                    <div class="events-table-wrapper" style="max-height: 180px;">
+                        <table class="events-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Event Details</th>
+                                    <th>Duration</th>
+                                    <th>Flag / Penalty</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repEventsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Ethical Callout in Report -->
+                <div class="ethical-callout">
+                    <h5>⚖️ Important Behavioural Correlation Disclaimer</h5>
+                    <p>
+                        This system calculates estimates of observable study behaviours (head pose, eye openness, phone presence, absence), which may correlate with attention but do not directly measure mental concentration.
+                    </p>
+                    <ul>
+                        <li>Looking away does not prove distraction (the student may be reading physical notes or contemplating).</li>
+                        <li>Closing eyes does not prove sleep or fatigue (the student may be reflecting or resting eyes).</li>
+                        <li>Absence from view indicates leaving the camera frame, not stopping learning.</li>
+                        <li>Phone presence indicates object visibility in view, not necessarily active smartphone use.</li>
+                        <li>Looking towards the screen does not prove mental concentration.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="btnPrintReport" class="btn btn-secondary">🖨️ Print / Save PDF</button>
+                <button id="btnDownloadReport" class="btn btn-primary">⬇️ Export JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Threshold & Accountability Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3>System Settings & Accountability Rules</h3>
+                <button id="btnCloseSettings" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-grid">
+                    <!-- SECTION: Flag Escalation & Punishment Rules -->
+                    <div class="settings-section-title">Flag Escalation & One-Flag Challenge</div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Flags Before Punishment</span>
+                            <strong id="valMaxFlags">5</strong>
+                        </div>
+                        <div class="setting-desc">Number of flags in window before triggering punishment</div>
+                        <input id="sliderMaxFlags" type="range" class="slider-input" min="2" max="10" step="1" value="5">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Rolling Flag Window (min)</span>
+                            <strong id="valFlagWindow">15m</strong>
+                        </div>
+                        <div class="setting-desc">Flags older than this window expire from escalation</div>
+                        <input id="sliderFlagWindow" type="range" class="slider-input" min="5" max="30" step="1" value="15">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Punishment Study Period (min)</span>
+                            <strong id="valPunishDuration">5m</strong>
+                        </div>
+                        <div class="setting-desc">Additional punishment study countdown duration</div>
+                        <input id="sliderPunishDuration" type="range" class="slider-input" min="2" max="15" step="1" value="5">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Allowed Flags During Challenge</span>
+                            <strong id="valAllowedFlags">1</strong>
+                        </div>
+                        <div class="setting-desc">Max flags allowed before punishment countdown resets</div>
+                        <input id="sliderAllowedFlags" type="range" class="slider-input" min="0" max="3" step="1" value="1">
+                    </div>
+
+                    <!-- SECTION: Detection Durations -->
+                    <div class="settings-section-title">Detection Thresholds & Durations</div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Eye Closure Duration (s)</span>
+                            <strong id="valDrowsy">5.0s</strong>
+                        </div>
+                        <div class="setting-desc">Continuous closed eyes duration before flagging</div>
+                        <input id="sliderDrowsy" type="range" class="slider-input" min="1.0" max="10.0" step="0.5" value="5.0">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Head Turn Duration (s)</span>
+                            <strong id="valGaze">5.0s</strong>
+                        </div>
+                        <div class="setting-desc">Looking away duration before flagging</div>
+                        <input id="sliderGaze" type="range" class="slider-input" min="1.0" max="10.0" step="0.5" value="5.0">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Phone Persistence Duration (s)</span>
+                            <strong id="valPhoneDur">5.0s</strong>
+                        </div>
+                        <div class="setting-desc">Continuous phone detection before flagging</div>
+                        <input id="sliderPhoneDur" type="range" class="slider-input" min="1.0" max="10.0" step="0.5" value="5.0">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Desk Absence Duration (s)</span>
+                            <strong id="valAbsence">30s</strong>
+                        </div>
+                        <div class="setting-desc">Time without face before flagging absence</div>
+                        <input id="sliderAbsence" type="range" class="slider-input" min="10" max="60" step="5" value="30">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Eye Aspect Ratio (EAR) Threshold</span>
+                            <strong id="valEar">0.21</strong>
+                        </div>
+                        <div class="setting-desc">Values below this indicate closed eyes</div>
+                        <input id="sliderEar" type="range" class="slider-input" min="0.12" max="0.32" step="0.01" value="0.21">
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-header">
+                            <span>Mouth Mesh Area Threshold</span>
+                            <strong id="valMouthArea">1500</strong>
+                        </div>
+                        <div class="setting-desc">Extended mouth area in pixels to flag yawning</div>
+                        <input id="sliderMouthArea" type="range" class="slider-input" min="800" max="3000" step="50" value="1500">
+                    </div>
+
+                    <!-- SECTION: Notifications & Permissions -->
+                    <div class="settings-section-title">Notification Channels</div>
+
+                    <div class="setting-item" style="grid-column: 1 / -1;">
+                        <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="chkInAppNotif" checked> In-App Banners & Toasts
+                            </label>
+                            <label class="toggle-label">
+                                <input type="checkbox" id="chkAudioNotif" checked> Audio Notifications
+                            </label>
+                            <label class="toggle-label">
+                                <input type="checkbox" id="chkBrowserNotif"> Browser Notifications
+                            </label>
+                            <button id="btnRequestBrowserNotif" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;">
+                                🔔 Request Browser Permission
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="document.getElementById('settingsModal').style.display='none'">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ethics & Engineering Principles Modal -->
+    <div id="ethicsModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3>Engineering Principles: Observable Behaviour vs Mental Focus</h3>
+                <button id="btnCloseEthics" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5;">
+                    The Synspeak Monitoring System is designed in strict accordance with the scientific principle that <strong>computer vision systems can only measure physical and observable behaviours, not internal cognitive mental states</strong>.
+                </p>
+
+                <div class="insight-card" style="border-left-color: var(--accent-cyan);">
+                    <h4>1. Looking Away vs Cognitive Distraction</h4>
+                    <p>Looking away from a screen is common when solving problems on scrap paper, reading a textbook, or reflecting. The system flags this as "Head Turned Away", an observable behaviour, rather than an objective mental distraction.</p>
+                </div>
+
+                <div class="insight-card" style="border-left-color: var(--accent-purple);">
+                    <h4>2. Eye Closure vs Sleep</h4>
+                    <p>Brief eye closures are normal blinks (100–300ms). Sustained eye closure may reflect contemplation or eye strain, not necessarily sleep. Our system uses a duration filter to avoid misclassifying natural blinking.</p>
+                </div>
+
+                <div class="insight-card" style="border-left-color: var(--accent-rose);">
+                    <h4>3. Phone Detection vs Phone Usage</h4>
+                    <p>A phone lying on the desk may be detected by YOLO object detection even if the student is ignoring it. The metric records "Phone Visible in Camera Frame", not proven usage.</p>
+                </div>
+
+                <div class="insight-card" style="border-left-color: var(--accent-amber);">
+                    <h4>4. Desk Absence vs Study Cessation</h4>
+                    <p>Stepping away from the camera could mean taking a planned break, retrieving a textbook, or stretching. The system records "Desk Absence Duration".</p>
+                </div>
+
+                <div class="insight-card" style="border-left-color: var(--accent-emerald);">
+                    <h4>5. On-Screen Gaze vs Mental Concentration</h4>
+                    <p>Looking directly at the monitor does not prove that cognitive focus is high (a student can daydream while staring at the screen). Hence, the concentration index is explicitly defined as an estimated behavioural engagement proxy.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="document.getElementById('ethicsModal').style.display='none'">Understood</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Pomodoro Laps & Break Setup Modal -->
+    <div id="pomConfigModal" class="modal-overlay">
+        <div class="modal-content pom-modal-content">
+            <div class="modal-header">
+                <h3>⏱️ Custom Pomodoro, Laps &amp; Break Timer</h3>
+                <button class="modal-close" onclick="document.getElementById('pomConfigModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="pom-modal-desc">
+                    Set your custom focus interval, number of study laps, and rest breaks. During breaks, monitoring continues smoothly but <strong>zero distraction events, flags, or penalties will be recorded</strong>.
+                </p>
+
+                <div class="pom-input-grid">
+                    <div class="pom-input-card">
+                        <label class="pom-input-label">Focus Lap</label>
+                        <div class="pom-input-row">
+                            <input type="number" id="inpFocusMinutes" min="1" max="180" value="25" class="pom-num-input">
+                            <span class="pom-unit-label">min</span>
+                        </div>
+                    </div>
+
+                    <div class="pom-input-card">
+                        <label class="pom-input-label">Total Laps</label>
+                        <div class="pom-input-row">
+                            <input type="number" id="inpTotalLaps" min="1" max="16" value="4" class="pom-num-input">
+                            <span class="pom-unit-label">laps</span>
+                        </div>
+                    </div>
+
+                    <div class="pom-input-card">
+                        <label class="pom-input-label">Break Time</label>
+                        <div class="pom-input-row">
+                            <input type="number" id="inpBreakMinutes" min="0" max="60" value="5" class="pom-num-input">
+                            <span class="pom-unit-label">min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Presets -->
+                <div class="pom-preset-section">
+                    <div class="pom-section-heading">Quick Presets</div>
+                    <div class="pom-preset-grid">
+                        <button type="button" class="pom-preset-btn" onclick="window.app.applyPomPreset(25, 4, 5)">
+                            <span>25m Focus × 4 Laps</span>
+                            <span style="color: var(--accent-cyan); font-size: 0.72rem;">5m Break</span>
+                        </button>
+                        <button type="button" class="pom-preset-btn" onclick="window.app.applyPomPreset(50, 2, 10)">
+                            <span>50m Deep Work × 2 Laps</span>
+                            <span style="color: var(--accent-cyan); font-size: 0.72rem;">10m Break</span>
+                        </button>
+                        <button type="button" class="pom-preset-btn" onclick="window.app.applyPomPreset(15, 3, 3)">
+                            <span>15m Quick Sprint × 3 Laps</span>
+                            <span style="color: var(--accent-cyan); font-size: 0.72rem;">3m Break</span>
+                        </button>
+                        <button type="button" class="pom-preset-btn" onclick="window.app.applyPomPreset(45, 1, 0)">
+                            <span>45m Single Sprint</span>
+                            <span style="color: var(--text-muted); font-size: 0.72rem;">No Break</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary schedule box -->
+                <div class="pom-schedule-preview">
+                    <div class="pom-preview-item">Focus: <strong id="prevTotalFocus" style="color: var(--accent-emerald);">100 min</strong></div>
+                    <div style="color: var(--border-color);">|</div>
+                    <div class="pom-preview-item">Breaks: <strong id="prevTotalBreak" style="color: var(--accent-cyan);">15 min</strong></div>
+                    <div style="color: var(--border-color);">|</div>
+                    <div class="pom-preview-item">Total: <strong id="prevTotalSession">115 min</strong></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('pomConfigModal').style.display='none'">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSavePomConfig">Apply Setup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Application Scripts -->
+    <script src="/static/js/audio.js?v=2.1"></script>
+    <script src="/static/js/charts.js?v=2.1"></script>
+    <script src="/static/js/app.js?v=2.1"></script>
+</body>
+</html>
