@@ -459,7 +459,7 @@ class App {
             } else {
                 this.isProcessingFrame = false;
             }
-        }, 'image/jpeg', 0.70);
+        }, 'image/jpeg', 0.55);
     }
 
     handleServerMessage(msg) {
